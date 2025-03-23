@@ -57,6 +57,14 @@ async function createProducts(req, res) {
     }
   }
 
+  async function getCategoryStats(req,res){
+    try{
+      const result = await pool.query("SELECT category, count(*),min(price),max(price),avg(price) as avarage  from products group by category")
+      res.json(result.rows)
+    }catch(error){
+      res.status(500).json({error:"Internal server error"})
+    }
+  }
 
 
-export { getProducts, createProducts, editProducts, deleteProducts }
+export { getProducts, createProducts, editProducts, deleteProducts, getCategoryStats}

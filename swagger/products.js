@@ -92,4 +92,24 @@
  *       "404":
  *         description: Product not found
  * 
+ * /api/products/category-stats:
+ *   get:
+ *     summary: Get product count per category
+ *     tags: [Products]
+ *     responses:
+ *       "200":
+ *         description: Category stats retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   category:
+ *                     type: string
+ *                     description: The product category
+ *                   count:
+ *                     type: integer
+ *                     description: Number of products in the category
  */
