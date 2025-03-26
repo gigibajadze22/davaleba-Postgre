@@ -1,12 +1,22 @@
-import pool from "../config/db.config.js"
 
+import pool from "../config/db.config.js"
+import { PrismaClient } from "@prisma/client"
+
+const prisma = new PrismaClient()
 
 async function getProducts(req, res) {
 
     try {
-        const result = await pool.query("select * from products")
-        res.json(result.rows)
-
+        const products = await prisma.products.findMany({
+          include: {
+            category: {
+              select: {
+                name:true
+              }
+            }
+          }
+        })
+        res.json(products)
     } catch (error) {
         res.status(500).json({ message: error.message })
     };
@@ -14,30 +24,27 @@ async function getProducts(req, res) {
 }
 
 async function createProducts(req, res) {
-    const { name, stock, category, archived, price } = req.body;
     try {
-      const result = await pool.query(
-        "INSERT INTO products (name, stock, category, archived, price) VALUES ($1, $2, $3, $4, $5) RETURNING *",
-        [name, stock, category, archived, price]
-      );
-      res.status(201).json(result.rows[0]);
+      const { name, stock, category, archived, price } = req.body;
+      const product = await prisma.products.create({
+      data: { name, stock, category, archived, price }
+     })
+      res.status(201).json(product);
     } catch (error) {
       res.status(500).json({ message: error.message });
     }
   }
 
   async function editProducts(req, res) {
-    const { id } = req.params;
-    const { name, stock, category, archived, price } = req.body;
+    
     try {
-      const result = await pool.query(
-        "UPDATE products SET name = $1, stock = $2, category = $3, archived = $4, price = $5 WHERE id = $6 RETURNING *",
-        [name, stock, category, archived, price, id]
-      );
-      if (result.rowCount === 0) {
-        return res.status(404).json({ message: "Product not found" });
-      }
-      res.json(result.rows[0]);
+      const { id } = req.params;
+      const { name, stock, category, archived, price } = req.body;
+      const product = await prisma.products.update({
+        where: {id: parseInt(id)},
+        data: { name, stock, category, archived, price }
+      })
+      res.json(product)
     } catch (error) {
       res.status(500).json({ message: error.message });
     }
@@ -45,26 +52,83 @@ async function createProducts(req, res) {
   
 
   async function deleteProducts(req, res) {
-    const { id } = req.params;
     try {
-      const result = await pool.query("DELETE FROM products WHERE id = $1", [id]);
-      if (result.rowCount === 0) {
-        return res.status(404).json({ message: "Product not found" });
-      }
-      res.json({ message: "Product deleted successfully" });
+      const { id } = req.params;
+      const product = await prisma.products.delete({
+        where: {id: parseInt(id)},
+      })
+      res.json({message: 'Product deleted successfully'})
     } catch (error) {
       res.status(500).json({ message: error.message });
     }
   }
 
+  async function buyProduct(req, res) {
+    try {
+        const { id } = req.params;
+        const { userId } = req.body;  // Make sure userId is accessed from the body
+
+        if (!userId) {
+            return res.status(400).json({ message: "User ID is required" });
+        }
+
+        // Check if product exists
+        const product = await prisma.products.findUnique({
+            where: { id: parseInt(id) }
+        });
+
+        if (!product) {
+            return res.status(404).json({ message: "Product not found" });
+        }
+
+        // Check if the product has enough stock
+        if (product.stock <= 0) {
+            return res.status(400).json({ message: "Not enough stock to complete the purchase" });
+        }
+
+        // Decrease the product stock
+        const updatedProduct = await prisma.products.update({
+            where: { id: parseInt(id) },
+            data: {
+                stock: product.stock - 1
+            }
+        });
+
+        // Add the purchased product to the usersProducts table
+        const newPurchase = await prisma.usersProducts.create({
+            data: {
+                userId: parseInt(userId),  // Use the userId from the body
+                productId: parseInt(id)
+            }
+        });
+
+        // Respond with the success message and details
+        res.json({
+            message: "Product purchased successfully",
+            product: updatedProduct,
+            purchase: newPurchase
+        });
+
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+}
+
+
   async function getCategoryStats(req,res){
     try{
-      const result = await pool.query("SELECT category, count(*),min(price),max(price),avg(price) as avarage  from products group by category")
-      res.json(result.rows)
+      const result = await prisma.products.groupBy({
+        by: ['name'],
+        _count: true,
+        _avg:{price: true},
+        _min:{price: true},
+        _max:{price: true}
+      })
+      res.json(result)
     }catch(error){
       res.status(500).json({error:"Internal server error"})
     }
   }
 
 
-export { getProducts, createProducts, editProducts, deleteProducts, getCategoryStats}
+export { getProducts, createProducts, editProducts, deleteProducts,buyProduct, getCategoryStats}
