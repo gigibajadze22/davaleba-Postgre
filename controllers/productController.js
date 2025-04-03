@@ -1,5 +1,4 @@
 
-import pool from "../config/db.config.js"
 import { PrismaClient } from "@prisma/client"
 
 const prisma = new PrismaClient()
@@ -63,10 +62,11 @@ async function createProducts(req, res) {
     }
   }
 
+
   async function buyProduct(req, res) {
     try {
         const { id } = req.params;
-        const { userId } = req.body;  // Make sure userId is accessed from the body
+        const userId  = req.user.id
 
         if (!userId) {
             return res.status(400).json({ message: "User ID is required" });
@@ -105,8 +105,6 @@ async function createProducts(req, res) {
         // Respond with the success message and details
         res.json({
             message: "Product purchased successfully",
-            product: updatedProduct,
-            purchase: newPurchase
         });
 
     } catch (error) {
@@ -114,7 +112,7 @@ async function createProducts(req, res) {
     }
 }
 
-
+  
   async function getCategoryStats(req,res){
     try{
       const result = await prisma.products.groupBy({

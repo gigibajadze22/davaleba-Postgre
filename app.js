@@ -2,7 +2,7 @@ import express from 'express'
 import productsRouter from './routes/productRoute.js'
 import usersRouter from './routes/userRoute.js';
 import morgan from 'morgan';
-import swaggerUI from "swagger-ui-express"
+import swaggerUi from "swagger-ui-express"
 import specs from './middlewares/swagger.js';
 
 const app = express()
@@ -26,7 +26,9 @@ app.use((req,res,next) =>{
     next()
 })
 
-app.use("/api-docs", swaggerUI.serve, swaggerUI.setup(specs))
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs,{
+    explorer: true,
+}))
 app.use("/api/products", productsRouter)
 app.use("/api/users",usersRouter )
 

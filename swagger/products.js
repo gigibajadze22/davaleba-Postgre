@@ -1,6 +1,11 @@
 /**
  * @swagger
  * components:
+ *   securitySchemes:
+ *     BearerAuth:
+ *       type: http
+ *       scheme: bearer
+ *       bearerFormat: JWT
  *   schemas:
  *     Product:
  *       type: object
@@ -116,40 +121,23 @@
  * /api/products/buyProduct/{id}:
  *   post:
  *     summary: Buy a product
- *     tags: [Products]
+ *     description: Allows an authenticated user to buy a product.
+ *     security:
+ *       - BearerAuth: []
  *     parameters:
- *       - name: id
- *         in: path
- *         description: ID of the product to buy
+ *       - in: path
+ *         name: id
  *         required: true
+ *         description: ID of the product to buy
  *         schema:
  *           type: integer
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               userId:
- *                 type: integer
- *                 description: The ID of the user making the purchase
- *                 example: 1
  *     responses:
- *       "200":
+ *       200:
  *         description: Product purchased successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   description: A message indicating that the product was purchased
- *                 product:
- *                   $ref: '#/components/schemas/Product'
- *       "400":
- *         description: Product is out of stock
- *       "404":
+ *       400:
+ *         description: Not enough stock or invalid request
+ *       404:
  *         description: Product not found
+ *       500:
+ *         description: Internal server error
  */
