@@ -1,6 +1,8 @@
 import { PrismaClient } from "@prisma/client";
 import jwt from 'jsonwebtoken'
 import bcrypt from 'bcrypt'
+import sendEmail from "../utils/emailService.js";
+
 
 const prisma = new PrismaClient();
 
@@ -68,6 +70,12 @@ async function signup(req,res) {
 async function signin(req,res){
   const {email, password} = req.body;
   const user = await prisma.users.findUnique({where: {email}, include: {roles: true}})
+  
+ 
+  if (!user) {
+    return res.status(401).json({ message: "Invalid credentials" });
+  }
+
   const isPasswordValid = await bcrypt.compare(password, user.password)
   if (!isPasswordValid){
     return res.status(401).json({message: "Invalid credentals"})
@@ -92,5 +100,89 @@ async function getUserInfo(req,res) {
    
 }
 
+async function forgotPassword(req,res){
+  const {email} = req.body
+  const user = await prisma.users.findUnique({where: {email} })
+  if(!user){
+    return res.status(401).json({message: "User not found"})
+  }
+  const otpCode = Math.floor(100000 + Math.random() * 900000).toString()
+  const otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
+  await prisma.users.update({
+    where: {id: user.id},
+    data: {otpCode, otpExpiry}
+  })
+ 
+ 
+  try{
+    const isEmailSent = await sendEmail(email,
+       "OTP for password reset", 
+       `
+       <h1>Password Reset OTP Code</h1>
+      <p>You requested a password reset. Use the following OTP code to reset your password:</p>
+      <h2 style="color: #4CAF50; font-size: 32px; letter-spacing: 5px; text-align: center;">${otpCode}</h2>
+      <p>This code will expire in 10 minutes.</p>
+      <p>If you didn't request this, please ignore this email.</p>
+      `,
+    );
+    if(isEmailSent){
+      res.json({message: 'OTP send to email'})
+    }
+   else{
+    res.status(500).json({message: 'Faild to send email'})
+   }  
+  }
+  catch(err){
+    console.error("Error sending email", err);
+    
+  }
+}
 
-export { getUsers, createUser, editUser, deleteUser, signup, signin, getUserInfo };
+async function resetPassword(req, res) {
+  try {
+    const { email, otpCode, newPassword } = req.body;
+    const user = await prisma.users.findUnique({ where: { email } });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User is not found' });
+    }
+
+    if (user.otpCode !== otpCode || user.otpExpiry < new Date()) {
+      if (user.otpAttempts > 1) {
+        await prisma.users.update({
+          where: { id: user.id },
+          data: { otpAttempts: user.otpAttempts - 1 }
+        });
+        return res.status(401).json({
+          message: `Invalid OTP code, ${user.otpAttempts - 1} attempts left`
+        });
+      } else {
+        await prisma.users.update({
+          where: { id: user.id },
+          data: { otpCode: null, otpExpiry: null, otpAttempts: 5 }
+        });
+        return res.status(401).json({ message: "OTP code is cancelled after too many failed attempts" });
+      }
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await prisma.users.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        otpCode: null,
+        otpExpiry: null,
+        otpAttempts: 5 
+      }
+    });
+
+    res.json({ message: 'Password reset successfully' });
+  } catch (error) {
+    console.error('Error resetting password:', error);
+    res.status(500).json({ message: 'Server error. Please try again later.' });
+  }
+}
+
+
+
+export { getUsers, createUser, editUser, deleteUser, signup, signin, getUserInfo, forgotPassword ,resetPassword };
