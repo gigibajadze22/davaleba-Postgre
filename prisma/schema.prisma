@@ -29,18 +29,19 @@ model products {
 }
 
 model users {
-  id         Int       @id @default(autoincrement())
-  created_at DateTime? @default(now()) @db.Timestamp(6)
-  firstname  String    @db.VarChar(255)
-  lastname   String    @db.VarChar(255)
-  email      String    @unique @db.VarChar(255)
-  password   String    @db.VarChar(255)
-  roleId     Int       @default(2)
-  otpCode    String?   @db.VarChar(6)
-  otpExpiry  DateTime? @db.Timestamp(6)
-   otpAttempts Int     @default(5)
-  
-  roles      roles        @relation(fields: [roleId], references: id)
+  id             Int       @id @default(autoincrement())
+  created_at     DateTime? @default(now()) @db.Timestamp(6)
+  firstname      String    @db.VarChar(255)
+  lastname       String    @db.VarChar(255)
+  email          String    @unique @db.VarChar(255)
+  password       String    @db.VarChar(255)
+  roleId         Int       @default(2)
+  otpCode        String?   @db.VarChar(6)
+  otpExpiry      DateTime? @db.Timestamp(6)
+  otpAttempts    Int       @default(5)
+  profilePicture String?   @db.VarChar(255)
+
+  roles         roles           @relation(fields: [roleId], references: id)
   usersProducts usersProducts[]
 }
 

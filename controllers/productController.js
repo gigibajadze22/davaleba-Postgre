@@ -1,6 +1,6 @@
-
 import { PrismaClient } from "@prisma/client"
-
+import xlsx from 'xlsx'
+import fs from 'fs'
 const prisma = new PrismaClient()
 
 async function getProducts(req, res) {
@@ -33,6 +33,29 @@ async function createProducts(req, res) {
       res.status(500).json({ message: error.message });
     }
   }
+
+async function uploadProductsExel(req,res){
+  if(!req.file){
+    return res.status(400).json({message: "No file uploaded"})
+  }
+  const workbook = xlsx.readFile(req.file.path)
+  const sheetName = workbook.SheetNames[0]
+  const sheet = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName])
+ 
+
+ await prisma.products.createMany({
+  data: sheet.map((row) =>({
+    name: row.name,
+    price: parseFloat(row.price),
+    categoryId: parseInt(row.categoryId),
+    stock: parseInt(row.stock),
+    description: row.description,
+  }))
+ })
+ fs.unlinkSync(req.file.path) 
+
+  res.status(200).json("Product uploaded successfully")
+}
 
   async function editProducts(req, res) {
     
@@ -129,4 +152,6 @@ async function createProducts(req, res) {
   }
 
 
-export { getProducts, createProducts, editProducts, deleteProducts,buyProduct, getCategoryStats}
+
+
+export { getProducts, createProducts, editProducts, deleteProducts,buyProduct, getCategoryStats,uploadProductsExel}

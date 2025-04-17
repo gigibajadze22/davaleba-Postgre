@@ -5,9 +5,10 @@ import morgan from 'morgan';
 import swaggerUi from "swagger-ui-express"
 import specs from './middlewares/swagger.js';
 
+
 const app = express()
 app.use(express.json())
-
+app.use('/uploads',express.static('uploads'))
 
 console.log(process.env.NODE_ENV);
 

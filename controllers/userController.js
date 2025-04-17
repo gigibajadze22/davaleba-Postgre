@@ -54,6 +54,26 @@ async function deleteUser(req, res) {
   }
 }
 
+async function uploadPicture(req, res) {
+  try {
+    const userId = req.user.id; 
+    
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    const user = await prisma.users.update({
+      where: { id: userId },
+      data: { profilePicture: req.file.path }
+    });
+
+    res.json(user);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+}
+
 async function signup(req,res) {
   try {
     const { firstname, lastname, email, password } = req.body; 
@@ -86,7 +106,6 @@ async function signin(req,res){
   });
   res.json({token})
 }
-
 
 async function getUserInfo(req,res) {
    try{ 
@@ -185,4 +204,4 @@ async function resetPassword(req, res) {
 
 
 
-export { getUsers, createUser, editUser, deleteUser, signup, signin, getUserInfo, forgotPassword ,resetPassword };
+export { getUsers, createUser, editUser, deleteUser, signup, signin, getUserInfo, forgotPassword ,resetPassword, uploadPicture };

@@ -1,6 +1,7 @@
 import express from 'express'
-import { getProducts, createProducts, editProducts, deleteProducts, getCategoryStats, buyProduct } from '../controllers/productController.js'
+import { getProducts, createProducts, editProducts, deleteProducts, getCategoryStats, buyProduct,uploadProductsExel} from '../controllers/productController.js'
 import { auth, isAdmin, isAdminOrManager } from '../middlewares/auth.js';
+import upload from '../middlewares/uploadFile.js';
 
 const productsRouter = express.Router();
 
@@ -18,5 +19,9 @@ productsRouter.route('/category-stats')
 
 productsRouter.route('/buyProduct/:id')
   .post(auth, buyProduct);
+
+
+productsRouter.route('/upload-products-excel')
+  .post(upload.single('products'),uploadProductsExel)
 
 export default productsRouter;
